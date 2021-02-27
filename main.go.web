@@ -1,0 +1,81 @@
+package main
+
+import (
+	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"gobot.io/x/gobot/drivers/gpio"
+	"gobot.io/x/gobot/platforms/firmata"
+	"log"
+	"net/http"
+	"time"
+)
+
+const contentDir = "/ui/"
+const currentDir = "."
+
+var (
+	ws *websocket.Conn
+	firmataAdapter *firmata.Adaptor
+	sensor *gpio.PIRMotionDriver
+)
+
+func initPir() {
+	firmataAdapter = firmata.NewAdaptor("/dev/ttyUSB0")
+	firmataAdapter.Connect()
+	sensor = gpio.NewPIRMotionDriver(firmataAdapter, "2")
+
+	sensor.On(gpio.MotionDetected, func(data interface{}) {
+		fmt.Println(gpio.MotionDetected)
+		//ws.WriteMessage(websocket.TextMessage, []byte(gpio.MotionDetected))
+		ws.WriteMessage(websocket.TextMessage, []byte("passedBy"))
+	})
+	sensor.On(gpio.MotionStopped, func(data interface{}) {
+		fmt.Println(gpio.MotionStopped)
+		//ws.WriteMessage(websocket.TextMessage, []byte("passedBy"))
+	})
+
+	err := sensor.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ws.WriteMessage(websocket.TextMessage, []byte("PIR connected!"))
+}
+
+func serveWs(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize: 1024,
+		WriteBufferSize: 1024,
+	}
+
+	var err error
+
+	ws, err = upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		if _, ok := err.(websocket.HandshakeError); !ok {
+			log.Println(err)
+		}
+		return
+	}
+
+	ws.WriteMessage(websocket.TextMessage, []byte("I'm connected!"))
+	initPir()
+}
+
+func main() {
+	r := mux.NewRouter()
+
+	// This will serve files under http://localhost:8000/static/<filename>
+	r.PathPrefix(contentDir).Handler(http.FileServer(http.Dir(currentDir)))
+	r.HandleFunc("/ws", serveWs)
+
+	srv := &http.Server{
+		Handler: r,
+		Addr:    "127.0.0.1:8000",
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
+}
