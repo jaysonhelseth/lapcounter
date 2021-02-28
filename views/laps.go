@@ -21,9 +21,28 @@ var (
 )
 
 func BuildView() *fyne.Container {
-	clock = canvas.NewText("00:00 MM", color.White)
-	lapCounter = canvas.NewText("0", color.White)
-	distance = canvas.NewText(fmt.Sprintf("%0.2f", 0.00), color.White)
+	clock = &canvas.Text{
+		Alignment: fyne.TextAlignCenter,
+		Color:     color.White,
+		Text:      getTime(),
+		TextSize:  25,
+		TextStyle: fyne.TextStyle{},
+	}
+	lapCounter = &canvas.Text{
+		Alignment: fyne.TextAlignCenter,
+		Color:     color.White,
+		Text:      "0",
+		TextSize:  35,
+		TextStyle: fyne.TextStyle{ Monospace: true },
+	}
+
+	distance = &canvas.Text{
+		Alignment: fyne.TextAlignCenter,
+		Color:     color.White,
+		Text:      fmt.Sprintf("%0.2f", 0.00),
+		TextSize:  35,
+		TextStyle: fyne.TextStyle{ Monospace: true },
+	}
 
 	go updateValues()
 
@@ -51,7 +70,7 @@ func BuildView() *fyne.Container {
 
 	distanceCard := widget.NewCard(
 		"Distance",
-		"in miles",
+		"",
 		distance,
 		)
 
@@ -85,6 +104,10 @@ func StopClock() {
 	doRunClock = false
 }
 
+func getTime() string {
+	return time.Now().Format("03:04:05 PM")
+}
+
 func runClock() {
 	tickChannel := time.Tick(time.Second * 1)
 	for _ = range tickChannel {
@@ -92,7 +115,7 @@ func runClock() {
 			break
 		}
 
-		clock.Text = time.Now().Format("03:04:05 PM")
+		clock.Text = getTime()
 		clock.Refresh()
 	}
 }
