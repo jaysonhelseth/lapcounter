@@ -6,6 +6,7 @@ type LapModel struct {
 }
 
 var current *LapModel
+var UpdateCh = make(chan int64)
 
 func DefaultLapModel() *LapModel {
 	if current != nil {

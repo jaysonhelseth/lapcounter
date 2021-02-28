@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/drivers/gpio"
 	"gobot.io/x/gobot/platforms/firmata"
 	"lapcounter/models"
@@ -16,31 +17,36 @@ var (
 	adapter string
 	firmataAdapter *firmata.Adaptor
 	sensor *gpio.PIRMotionDriver
+	robot *gobot.Robot
 )
 
 func initPir() {
-	firmataAdapter = firmata.NewAdaptor(adapter)
 	if strings.Compare(adapter, "") == 0 {
 		log.Println("No adapter was set.")
 		return
 	}
 
-	firmataAdapter.Connect()
+	firmataAdapter = firmata.NewAdaptor(adapter)
 	sensor = gpio.NewPIRMotionDriver(firmataAdapter, "2")
 
-	sensor.On(gpio.MotionDetected, func(data interface{}) {
-		models.DefaultLapModel().LapCount++
-		log.Printf("%s, lapcount: %d", gpio.MotionDetected, models.DefaultLapModel().LapCount)
-	})
-	sensor.On(gpio.MotionStopped, func(data interface{}) {
-		log.Println(gpio.MotionStopped)
-	})
-
-	err := sensor.Start()
-	if err != nil {
-		log.Fatal(err)
+	work := func() {
+		sensor.On(gpio.MotionDetected, func(data interface{}) {
+			log.Println(gpio.MotionDetected)
+			models.UpdateCh <- 1
+		})
+		sensor.On(gpio.MotionStopped, func(data interface{}) {
+			log.Println(gpio.MotionStopped)
+		})
 	}
+
+	robot = gobot.NewRobot("PIR",
+		[]gobot.Connection{firmataAdapter},
+		[]gobot.Device{sensor},
+		work,
+	)
+
 	log.Println("PIR connected!")
+	robot.Start()
 }
 
 func main() {
@@ -56,8 +62,9 @@ func main() {
 	go initPir()
 
 	defer func() {
+		close(models.UpdateCh)
 		views.StopClock()
-		sensor.Halt()
+		robot.Stop()
 		firmataAdapter.Disconnect()
 	}()
 	window.ShowAndRun()

@@ -24,7 +24,8 @@ func BuildView() *fyne.Container {
 	clock = canvas.NewText("00:00 MM", color.White)
 	lapCounter = canvas.NewText("0", color.White)
 	distance = canvas.NewText(fmt.Sprintf("%0.2f", 0.00), color.White)
-	updateValues()
+
+	go updateValues()
 
 	button := widget.NewButton("Reset", func() {
 		log.Println("Reset")
@@ -68,14 +69,16 @@ func BuildView() *fyne.Container {
 	return border
 }
 func updateValues() {
-	lapCounter.Text = fmt.Sprintf("%d", models.DefaultLapModel().LapCount)
-	lapCounter.Refresh()
+	for update := range models.UpdateCh {
+		models.DefaultLapModel().LapCount += update
+		log.Printf("%d", models.DefaultLapModel().LapCount)
 
-	distance.Text = fmt.Sprintf("%0.2f", models.DefaultLapModel().Distance)
-	distance.Refresh()
+		lapCounter.Text = fmt.Sprintf("%d", models.DefaultLapModel().LapCount)
+		lapCounter.Refresh()
 
-	clock.Text = time.Now().Format("03:04:05 PM")
-	clock.Refresh()
+		distance.Text = fmt.Sprintf("%0.2f", models.DefaultLapModel().Distance)
+		distance.Refresh()
+	}
 }
 
 func StopClock() {
@@ -83,12 +86,13 @@ func StopClock() {
 }
 
 func runClock() {
-	for {
+	tickChannel := time.Tick(time.Second * 1)
+	for _ = range tickChannel {
 		if !doRunClock {
 			break
 		}
 
-		updateValues()
-		time.Tick(time.Millisecond * 20)
+		clock.Text = time.Now().Format("03:04:05 PM")
+		clock.Refresh()
 	}
 }
