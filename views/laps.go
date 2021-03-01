@@ -34,7 +34,7 @@ func BuildView() *fyne.Container {
 		Alignment: fyne.TextAlignCenter,
 		Color:     color.White,
 		Text:      "0",
-		TextSize:  35,
+		TextSize:  250,
 		TextStyle: fyne.TextStyle{ Monospace: true },
 	}
 
@@ -42,7 +42,7 @@ func BuildView() *fyne.Container {
 		Alignment: fyne.TextAlignCenter,
 		Color:     color.White,
 		Text:      fmt.Sprintf("%0.2f", 0.00),
-		TextSize:  35,
+		TextSize:  150,
 		TextStyle: fyne.TextStyle{ Monospace: true },
 	}
 
