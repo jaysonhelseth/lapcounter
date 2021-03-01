@@ -9,9 +9,11 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"image/color"
 	"lapcounter/models"
-	"log"
 	"time"
 )
+
+const MILE float64 = 5280.00
+const LAP_LENGHT float64 = 98.50
 
 var (
 	clock *canvas.Text
@@ -46,8 +48,10 @@ func BuildView() *fyne.Container {
 
 	go updateValues()
 
-	button := widget.NewButton("Reset", func() {
-		log.Println("Reset")
+	resetButton := widget.NewButton("Reset", func() {
+		// Set the LapCount to zero and send a zero in the update channel.
+		models.DefaultLapModel().LapCount = 0
+		models.UpdateCh <- 0
 	})
 
 	clockBar := container.NewHBox(
@@ -58,7 +62,7 @@ func BuildView() *fyne.Container {
 
 	buttonBar := container.NewHBox(
 		layout.NewSpacer(),
-		button,
+		resetButton,
 		layout.NewSpacer(),
 		)
 
@@ -90,7 +94,7 @@ func BuildView() *fyne.Container {
 func updateValues() {
 	for update := range models.UpdateCh {
 		models.DefaultLapModel().LapCount += update
-		log.Printf("%d", models.DefaultLapModel().LapCount)
+		models.DefaultLapModel().Distance = LAP_LENGHT * float64(models.DefaultLapModel().LapCount) / MILE
 
 		lapCounter.Text = fmt.Sprintf("%d", models.DefaultLapModel().LapCount)
 		lapCounter.Refresh()
