@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/drivers/gpio"
@@ -56,8 +55,9 @@ func main() {
 	lapApp := app.New()
 	window := lapApp.NewWindow("Lap Counter")
 
+	lapApp.Settings().SetTheme(&myTheme{})
 	window.SetContent(views.BuildView())
-	window.Resize(fyne.Size{Height: 300, Width: 300})
+	window.SetFullScreen(true)
 
 	go initPir()
 
